@@ -21,7 +21,7 @@ Here are some ideas to get you started:
 |  ----  | ----  |  ----  | ----  |  ----  | ----  |
 |  console   | hello  |  hello  |  hello  |  hello  | hello  |
 |  window   | winforms  |    |  wxwidgets  |  electron  |   |
-|  webapp   | webapp<br>mvc  |  spring boot  |    |  express  | django  |
+|  webapp   | webapp<br>mvc  |  spring boot  |    |  express<br>react<br>angular<br>vue  | django  |
 
 - 🔭 I’m currently working on ...
 - 🌱 I’m currently learning ...
