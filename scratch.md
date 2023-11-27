@@ -23,3 +23,11 @@
         disableHostCheck: true
     },
 ```
+
+```
+FROM wwkiyyx/railway:scratch
+USER root
+EXPOSE 8601
+WORKDIR /scratch-gui
+CMD ["npm", "start"]
+```
