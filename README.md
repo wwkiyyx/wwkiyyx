@@ -21,6 +21,11 @@
  - LLM：大型语言模型（Large Language Model）
  - BERT：Bidirectional Encoder Representations from Transformers
  - GPT：Generative Pre-trained Transformer
+ - RAG: 检索增强生成（Retrieval-augmented Generation）
+ - MCP: 模型上下文协议 (Model Context Protocol)
+ - 思维链 深度思考 长思考
+ - 联网搜索
+ - Agent: 智能体
 
 <!--
 **wwkiyyx/wwkiyyx** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
