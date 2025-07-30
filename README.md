@@ -1,4 +1,5 @@
 ### Hi there 👋
+
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
 | - | 词嵌入 | Word Embedding |
@@ -9,6 +10,9 @@
 | GPT | - | Generative Pre-trained Transformer |
 | - | 预训练模型 | Pre-trained Model |
 | - | 聊天机器人 | Chatbot |
+| - | 思维链 深度思考 长思考 | - |
+| - | 联网搜索 | - |
+| - | 智能体 | Agent |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
 | MCP | 模型上下文协议 | Model Context Protocol |
 
@@ -40,10 +44,6 @@
 | DQN | 深度Q网络 | Deep Q-Network |
 | - | 蒙特卡洛 | Monte Carlo |
 | PPO | 近端策略优化 | Proximal Policy Optimization |
-
- - 思维链 深度思考 长思考
- - 联网搜索
- - Agent: 智能体
 
 <!--
 **wwkiyyx/wwkiyyx** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
