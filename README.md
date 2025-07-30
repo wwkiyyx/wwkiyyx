@@ -1,19 +1,28 @@
 ### Hi there 👋
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
+| - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
 | LSTM | 长短期记忆 | Long Short-Term Memory |
 | LLM | 大型语言模型 | Large Language Model |
 | BERT | - | Bidirectional Encoder Representations from Transformers |
 | GPT | - | Generative Pre-trained Transformer |
+| - | 预训练模型 | Pre-trained Model |
+| - | 聊天机器人 | Chatbot |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
 | MCP | 模型上下文协议 | Model Context Protocol |
 
 | CV | 计算机视觉 | Computer Vision |
 | ----- | ----- | ----- |
+| OCR | 光学字符识别 | Optical Character Recognition |
 | ANN | 人工神经网络 | Artificial Neural Network |
 | CNN | 卷积神经网络 | Convolutional Neural Network |
 | GAN | 生成对抗网络 | Generative Adversarial Network |
+| - | 激活函数 | Activation Function |
+| BP | 反向传播 | Backpropagation |
+| - | 学习率 | Learning Rate |
+| - | 分类 | Classification |
+| - | 特征学习 | Feature Learning |
 
 | AI | 人工智能 | Artificial Intelligence |
 | ----- | ----- | ----- |
@@ -29,6 +38,8 @@
 | DL | 深度学习 | Deep Learning |
 | DRL | 深度强化学习 | Deep Reinforcement Learning |
 | DQN | 深度Q网络 | Deep Q-Network |
+| - | 蒙特卡洛 | Monte Carlo |
+| PPO | 近端策略优化 | Proximal Policy Optimization |
 
  - 思维链 深度思考 长思考
  - 联网搜索
