@@ -1,5 +1,5 @@
 ### Hi there 👋
- - 1
+
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
 | LLM | 大型语言模型 | Large Language Model |
@@ -7,13 +7,13 @@
 | GPT | - | Generative Pre-trained Transformer |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
 | MCP | 模型上下文协议 | Model Context Protocol |
- - 2
+
 | CV | 计算机视觉 | Computer Vision |
 | ----- | ----- | ----- |
 | ANN | 人工神经网络 | Artificial Neural Network |
 | CNN | 卷积神经网络 | Convolutional Neural Network |
 | RNN | 循环神经网络 | Recurrent Neural Network |
- - 3
+
 | AI | 人工智能 | Artificial Intelligence |
 | ----- | ----- | ----- |
 | ASR | 自动语音识别 | Automatic Speech Recognition |
@@ -21,6 +21,7 @@
 | RL | 强化学习 | Reinforcement Learning |
 | DL | 深度学习 | Deep Learning |
 | DRL | 深度强化学习 | Deep Reinforcement Learning |
+
  - 思维链 深度思考 长思考
  - 联网搜索
  - Agent: 智能体
