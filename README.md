@@ -1,6 +1,6 @@
 ### Hi there 👋
 
-| NLP | 自然语言处理 | Natural Language Processing |
+| NLP | 自然语言处理 | Natural Language Processing |  |
 | ----- | ----- | ----- |
 | - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
@@ -10,10 +10,12 @@
 | GPT | - | Generative Pre-trained Transformer |
 | - | 预训练模型 | Pre-trained Model |
 | - | 聊天机器人 | Chatbot |
-| - | 思维链 深度思考 长思考 | - |
-| - | 联网搜索 | - |
+| - | 思维链 深度思考 长思考 | thinking |
+| - | 工具调用 函数调用 | tool and function | 
+| - | 联网搜索 | web search |
 | - | 智能体 | Agent |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
+| - | 大模型微调 | Fine-tuning | 
 | MCP | 模型上下文协议 | Model Context Protocol |
 
 | CV | 计算机视觉 | Computer Vision |
