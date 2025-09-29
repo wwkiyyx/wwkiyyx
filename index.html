@@ -16,7 +16,7 @@
                         primary: '#07C160', // 微信绿
                         secondary: '#4E5969', // 次要操作蓝灰色
                         tertiary: '#86909C', // 第三操作灰色
-                        secondary: '#F2F3F5', // 背景灰
+                        'bg-gray': '#F2F3F5', // 背景灰 (修复了重复定义的secondary)
                         'chat-blue': '#95EC69', // 自己发送的消息背景
                         'chat-gray': '#FFFFFF', // 对方发送的消息背景
                         'text-primary': '#303133', // 主要文字
@@ -101,6 +101,9 @@
             .progress-bar {
                 @apply h-full bg-primary transition-all duration-300;
             }
+            .btn-disabled {
+                @apply opacity-50 cursor-not-allowed;
+            }
         }
     </style>
 </head>
@@ -113,6 +116,11 @@
     <div class="w-full max-w-5xl h-full max-h-[800px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
         <!-- 聊天头部 -->
         <div class="bg-white p-3 border-b border-gray-200">
+            <!-- 英文版本链接 -->
+            <div class="flex justify-center mb-2">
+                <a href="./index_en.html" class="text-primary hover:text-primary/80 text-sm">Go to English version</a>
+            </div>
+            
             <div class="flex items-start justify-between">
                 <div id="zhangshan-form-container">
                     <div class="flex items-center">
@@ -216,7 +224,7 @@
             </div>
             
             <!-- 操作按钮组 -->
-            <div class="mt-3 flex justify-center space-x-2">
+            <div class="mt-3 flex justify-center space-x-2 flex-wrap">
                 <button id="edit-btn" class="action-btn bg-blue-500 text-white hover:bg-blue-600">
                     <i class="fa fa-pencil mr-1"></i> 编辑
                 </button>
@@ -242,13 +250,16 @@
         </div>
         
         <!-- 聊天内容区域 -->
-        <div class="flex-1 p-4 overflow-y-auto scrollbar-hide space-y-4 bg-secondary" id="chat-messages">
+        <div class="flex-1 p-4 overflow-y-auto scrollbar-hide space-y-4 bg-bg-gray" id="chat-messages">
             <!-- 初始提示信息 -->
             <div class="flex justify-center">
                 <span class="bg-gray-300 text-white text-xs px-3 py-1 rounded-full">请点击提交按钮开始对话</span>
             </div>
         </div>
     </div>
+
+    <!-- 用于文件导入的隐藏输入 -->
+    <input type="file" id="file-import" accept=".json" class="hidden">
 
     <script>
         // 全局变量用于控制对话流程
@@ -264,6 +275,7 @@
             const progressBar = document.getElementById('progress-bar');
             const submitBtn = document.getElementById('submit-btn');
             const stopBtn = document.getElementById('stop-btn');
+            const fileImport = document.getElementById('file-import');
             
             // 页面加载完成后滚动到最新消息
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -631,6 +643,7 @@
                     // 设置对话状态
                     isConversationRunning = true;
                     submitBtn.disabled = true;
+                    submitBtn.classList.add('btn-disabled');
                     stopBtn.classList.remove('hidden');
                     progressContainer.classList.remove('hidden');
                     progressBar.style.width = '0%';
@@ -697,6 +710,7 @@
                     // 重置对话状态
                     isConversationRunning = false;
                     submitBtn.disabled = false;
+                    submitBtn.classList.remove('btn-disabled');
                     stopBtn.classList.add('hidden');
                     progressContainer.classList.add('hidden');
                     conversationAbortController = null;
@@ -710,9 +724,88 @@
                         conversationAbortController.abort();
                         isConversationRunning = false;
                         submitBtn.disabled = false;
+                        submitBtn.classList.remove('btn-disabled');
                         stopBtn.classList.add('hidden');
                     }
                 }
+            }
+            
+            // 保存表单数据到localStorage
+            function saveFormData() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法保存数据');
+                    return;
+                }
+                
+                const data = getFormData();
+                try {
+                    localStorage.setItem('chatFormData', JSON.stringify(data));
+                    alert('数据已成功保存到本地存储！');
+                } catch (e) {
+                    alert('保存失败：' + e.message);
+                    console.error('保存失败', e);
+                }
+            }
+            
+            // 从文件导入数据
+            function importFromFile() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法导入数据');
+                    return;
+                }
+                fileImport.click();
+            }
+            
+            // 处理文件导入
+            function handleFileImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (setFormData(data)) {
+                            alert('数据已成功导入！');
+                            // 显示表单以便用户查看导入的数据
+                            document.querySelectorAll('.form-element').forEach(form => {
+                                form.classList.remove('form-hidden');
+                            });
+                        }
+                    } catch (e) {
+                        alert('导入失败：数据格式错误');
+                        console.error('导入失败', e);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // 重置文件输入，允许重复选择同一个文件
+                fileImport.value = '';
+            }
+            
+            // 导出数据到文件
+            function exportToFile() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法导出数据');
+                    return;
+                }
+                
+                const data = getFormData();
+                const dataStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `chat_config_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
             }
             
             // 编辑按钮功能 - 显示隐藏的表单
@@ -774,89 +867,16 @@
                 }
             });
             
-            // 保存按钮功能 - 使用localStorage保存
-            document.getElementById('save-btn').addEventListener('click', function() {
-                if (isConversationRunning) {
-                    alert('对话正在进行中，无法保存数据');
-                    return;
-                }
-                
-                const data = getFormData();
-                
-                // 保存到本地存储
-                localStorage.setItem('chatFormData', JSON.stringify(data));
-                
-                alert('表单数据已保存到本地！');
-            });
+            // 保存按钮功能
+            document.getElementById('save-btn').addEventListener('click', saveFormData);
             
-            // 导入按钮功能 - 从JSON文件导入
-            document.getElementById('import-btn').addEventListener('click', function() {
-                if (isConversationRunning) {
-                    alert('对话正在进行中，无法导入数据');
-                    return;
-                }
-                
-                // 创建一个隐藏的文件输入元素
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.json';
-                
-                fileInput.onchange = function(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        try {
-                            const data = JSON.parse(event.target.result);
-                            if (setFormData(data)) {
-                                alert('数据导入成功！');
-                                // 显示表单以便用户查看导入的数据
-                                document.querySelectorAll('.form-element').forEach(form => {
-                                    form.classList.remove('form-hidden');
-                                });
-                            }
-                        } catch (e) {
-                            alert('导入失败：文件格式错误');
-                            console.error('导入失败', e);
-                        }
-                    };
-                    reader.readAsText(file);
-                };
-                
-                // 触发文件选择对话框
-                fileInput.click();
-            });
+            // 导入按钮功能
+            document.getElementById('import-btn').addEventListener('click', importFromFile);
+            fileImport.addEventListener('change', handleFileImport);
             
-            // 导出按钮功能 - 导出为JSON文件
-            document.getElementById('export-btn').addEventListener('click', function() {
-                if (isConversationRunning) {
-                    alert('对话正在进行中，无法导出数据');
-                    return;
-                }
-                
-                const data = getFormData();
-                const jsonData = JSON.stringify(data, null, 2);
-                const blob = new Blob([jsonData], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                // 创建下载链接
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'chat_form_data_' + new Date().toISOString().slice(0,10) + '.json';
-                document.body.appendChild(a);
-                a.click();
-                
-                // 清理
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 0);
-                
-                alert('表单数据已导出为JSON文件！');
-            });
+            // 导出按钮功能
+            document.getElementById('export-btn').addEventListener('click', exportToFile);
         });
     </script>
 </body>
 </html>
-    
