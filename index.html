@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多轮聊天对话</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#07C160', // 微信绿
+                        secondary: '#4E5969', // 次要操作蓝灰色
+                        tertiary: '#86909C', // 第三操作灰色
+                        secondary: '#F2F3F5', // 背景灰
+                        'chat-blue': '#95EC69', // 自己发送的消息背景
+                        'chat-gray': '#FFFFFF', // 对方发送的消息背景
+                        'text-primary': '#303133', // 主要文字
+                        'text-secondary': '#606266', // 次要文字
+                        'text-tertiary': '#909399', //  tertiary文字
+                        'loading-gray': '#E5E7EB', // 加载状态颜色
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .chat-bubble-left {
+                border-radius: 0.5rem 0.5rem 0.5rem 0;
+            }
+            .chat-bubble-right {
+                border-radius: 0.5rem 0.5rem 0 0.5rem;
+            }
+            .form-input {
+                @apply w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary;
+            }
+            .form-textarea {
+                @apply w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary min-h-[80px] resize-y;
+            }
+            .password-container {
+                @apply relative;
+            }
+            .toggle-password {
+                @apply absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-primary transition-colors;
+            }
+            .action-btn {
+                @apply px-4 py-1.5 rounded transition-colors flex items-center text-sm;
+            }
+            .form-hidden {
+                @apply hidden;
+            }
+            .radio-group {
+                @apply flex items-center ml-2 cursor-pointer;
+            }
+            .radio-input {
+                @apply w-3 h-3 text-primary focus:ring-primary border-gray-300;
+            }
+            .radio-label {
+                @apply text-xs text-text-secondary ml-1;
+            }
+            .model-tag {
+                @apply text-xs text-blue-600 ml-1 font-normal;
+            }
+            .typing-indicator {
+                @apply flex space-x-1.5 py-1.5 px-2;
+            }
+            .typing-indicator span {
+                @apply w-2 h-2 bg-text-tertiary rounded-full animate-bounce;
+            }
+            .typing-indicator span:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+            .typing-indicator span:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+            .error-message {
+                @apply text-red-500 text-xs italic;
+            }
+            .progress-container {
+                @apply fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50 hidden;
+            }
+            .progress-bar {
+                @apply h-full bg-primary transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center p-4 font-sans">
+    <!-- 进度条 -->
+    <div class="progress-container" id="progress-container">
+        <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+    </div>
+    
+    <div class="w-full max-w-5xl h-full max-h-[800px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+        <!-- 聊天头部 -->
+        <div class="bg-white p-3 border-b border-gray-200">
+            <div class="flex items-start justify-between">
+                <div id="zhangshan-form-container">
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <img src="https://picsum.photos/id/1005/200" alt="张三的头像" class="w-10 h-10 rounded-full object-cover">
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>
+                        </div>
+                        <div class="ml-3 flex items-center">
+                            <h3 class="text-text-primary font-medium">
+                                张三
+                                <span id="zhangshan-model" class="model-tag hidden"></span>
+                            </h3>
+                            <!-- 张三的先开始单选按钮 - 默认选中 -->
+                            <label class="radio-group">
+                                <input type="radio" name="starter" value="zhangshan" class="radio-input" checked>
+                                <span class="radio-label">先开始</span>
+                            </label>
+                            <p class="text-text-tertiary text-xs ml-2">昨天 18:30</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 张三的表单 - 初始隐藏 -->
+                    <div class="mt-2 ml-13 bg-gray-50 p-2 rounded-md text-xs w-[280px] form-element form-hidden">
+                        <form id="form-zhangshan" class="space-y-1">
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">URL</label>
+                                <input type="text" name="url" class="form-input" placeholder="输入URL">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Key</label>
+                                <div class="password-container">
+                                    <input type="password" id="key-zhangshan" name="key" class="form-input pr-8" placeholder="输入Key">
+                                    <i class="fa fa-eye-slash toggle-password" data-for="key-zhangshan"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Model</label>
+                                <input type="text" name="model" class="form-input" placeholder="输入Model">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">System prompt</label>
+                                <textarea name="systemPrompt" class="form-textarea" placeholder="输入系统提示词"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">User start prompt</label>
+                                <textarea name="userStartPrompt" class="form-textarea" placeholder="输入用户起始提示词"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="lisi-form-container">
+                    <div class="flex items-center">
+                        <div class="flex items-center">
+                            <div class="relative mr-2">
+                                <img src="https://picsum.photos/id/1012/200" alt="李四的头像" class="w-8 h-8 rounded-full object-cover">
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-text-primary text-sm font-medium">
+                                    李四
+                                    <span id="lisi-model" class="model-tag hidden"></span>
+                                </span>
+                                <!-- 李四的先开始单选按钮 -->
+                                <label class="radio-group">
+                                    <input type="radio" name="starter" value="lisi" class="radio-input">
+                                    <span class="radio-label">先开始</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 李四的表单 - 初始隐藏 -->
+                    <div class="mt-2 bg-gray-50 p-2 rounded-md text-xs w-[280px] form-element form-hidden">
+                        <form id="form-lisi" class="space-y-1">
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">URL</label>
+                                <input type="text" name="url" class="form-input" placeholder="输入URL">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Key</label>
+                                <div class="password-container">
+                                    <input type="password" id="key-lisi" name="key" class="form-input pr-8" placeholder="输入Key">
+                                    <i class="fa fa-eye-slash toggle-password" data-for="key-lisi"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Model</label>
+                                <input type="text" name="model" class="form-input" placeholder="输入Model">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">System prompt</label>
+                                <textarea name="systemPrompt" class="form-textarea" placeholder="输入系统提示词"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">User start prompt</label>
+                                <textarea name="userStartPrompt" class="form-textarea" placeholder="输入用户起始提示词"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作按钮组 -->
+            <div class="mt-3 flex justify-center space-x-2">
+                <button id="edit-btn" class="action-btn bg-blue-500 text-white hover:bg-blue-600">
+                    <i class="fa fa-pencil mr-1"></i> 编辑
+                </button>
+                <button id="submit-btn" class="action-btn bg-primary text-white hover:bg-primary/90">
+                    <i class="fa fa-paper-plane mr-1"></i> 提交
+                </button>
+                <button id="load-btn" class="action-btn bg-purple-500 text-white hover:bg-purple-600">
+                    <i class="fa fa-upload mr-1"></i> 载入
+                </button>
+                <button id="save-btn" class="action-btn bg-blue-700 text-white hover:bg-blue-800">
+                    <i class="fa fa-save mr-1"></i> 保存
+                </button>
+                <button id="import-btn" class="action-btn bg-green-600 text-white hover:bg-green-700">
+                    <i class="fa fa-file-text-o mr-1"></i> 导入
+                </button>
+                <button id="export-btn" class="action-btn bg-tertiary text-white hover:bg-tertiary/90">
+                    <i class="fa fa-download mr-1"></i> 导出
+                </button>
+                <button id="stop-btn" class="action-btn bg-red-500 text-white hover:bg-red-600 hidden">
+                    <i class="fa fa-stop mr-1"></i> 停止
+                </button>
+            </div>
+        </div>
+        
+        <!-- 聊天内容区域 -->
+        <div class="flex-1 p-4 overflow-y-auto scrollbar-hide space-y-4 bg-secondary" id="chat-messages">
+            <!-- 初始提示信息 -->
+            <div class="flex justify-center">
+                <span class="bg-gray-300 text-white text-xs px-3 py-1 rounded-full">请点击提交按钮开始对话</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量用于控制对话流程
+        let isConversationRunning = false;
+        let conversationAbortController = null;
+        
+        // 聊天记录展示功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const zhangshanForm = document.getElementById('form-zhangshan');
+            const lisiForm = document.getElementById('form-lisi');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const submitBtn = document.getElementById('submit-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            
+            // 页面加载完成后滚动到最新消息
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // 密码显示/隐藏功能
+            document.querySelectorAll('.toggle-password').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const passwordInputId = this.getAttribute('data-for');
+                    const passwordInput = document.getElementById(passwordInputId);
+                    
+                    if (passwordInput) {
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            this.classList.remove('fa-eye-slash');
+                            this.classList.add('fa-eye');
+                        } else {
+                            passwordInput.type = 'password';
+                            this.classList.remove('fa-eye');
+                            this.classList.add('fa-eye-slash');
+                        }
+                    }
+                });
+            });
+            
+            // 设置表单初始值
+            const initialValues = {
+                url: 'https://api.suanli.cn/v1',
+                key: 'sk-W0rpStc95T7JVYVwDYc29IyirjtpPPby6SozFMQr17m8KWeo',
+                model: 'free:Qwen3-30B-A3B',
+                systemPrompt: '你是文化人',
+                userStartPrompt: '你好，我们来讨论一些有趣的话题吧'
+            };
+            
+            // 为张三的表单设置初始值
+            Object.keys(initialValues).forEach(key => {
+                const field = zhangshanForm.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = initialValues[key];
+                }
+            });
+            
+            // 为李四的表单设置初始值
+            Object.keys(initialValues).forEach(key => {
+                const field = lisiForm.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = initialValues[key];
+                }
+            });
+            
+            // 清除聊天记录的函数
+            function clearChatHistory() {
+                // 清空聊天容器
+                chatMessages.innerHTML = '';
+                
+                // 添加当前日期的分割线
+                const today = new Date();
+                const options = { month: 'short', day: 'numeric' };
+                const dateString = today.toLocaleDateString('zh-CN', options);
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'flex justify-center';
+                dateDiv.innerHTML = `<span class="bg-gray-300 text-white text-xs px-3 py-1 rounded-full">${dateString}</span>`;
+                
+                chatMessages.appendChild(dateDiv);
+            }
+            
+            // 获取表单数据的通用函数
+            function getFormData() {
+                // 获取张三的表单数据
+                const zhangshanData = new FormData(zhangshanForm);
+                const zhangshanValues = Object.fromEntries(zhangshanData.entries());
+                
+                // 获取李四的表单数据
+                const lisiData = new FormData(lisiForm);
+                const lisiValues = Object.fromEntries(lisiData.entries());
+                
+                // 获取先开始选项
+                const starter = document.querySelector('input[name="starter"]:checked')?.value || '';
+                
+                return {
+                    zhangshan: zhangshanValues,
+                    lisi: lisiValues,
+                    starter: starter
+                };
+            }
+            
+            // 设置表单数据的通用函数
+            function setFormData(data) {
+                if (!data || !data.zhangshan || !data.lisi) {
+                    alert('无效的数据格式');
+                    return false;
+                }
+                
+                // 设置张三的表单数据
+                Object.keys(data.zhangshan).forEach(key => {
+                    const field = zhangshanForm.querySelector(`[name="${key}"]`);
+                    if (field) {
+                        field.value = data.zhangshan[key];
+                    }
+                });
+                
+                // 设置李四的表单数据
+                Object.keys(data.lisi).forEach(key => {
+                    const field = lisiForm.querySelector(`[name="${key}"]`);
+                    if (field) {
+                        field.value = data.lisi[key];
+                    }
+                });
+                
+                // 设置先开始选项
+                if (data.starter) {
+                    const starterRadio = document.querySelector(`input[name="starter"][value="${data.starter}"]`);
+                    if (starterRadio) {
+                        starterRadio.checked = true;
+                    }
+                }
+                
+                // 更新显示的模型信息
+                updateModelDisplay(data);
+                
+                return true;
+            }
+            
+            // 更新名字后面显示的模型信息
+            function updateModelDisplay(data) {
+                const zhangshanModelEl = document.getElementById('zhangshan-model');
+                const lisiModelEl = document.getElementById('lisi-model');
+                
+                // 显示张三的模型信息
+                if (data.zhangshan.model) {
+                    zhangshanModelEl.textContent = `[${data.zhangshan.model}]`;
+                    zhangshanModelEl.classList.remove('hidden');
+                } else {
+                    zhangshanModelEl.classList.add('hidden');
+                }
+                
+                // 显示李四的模型信息
+                if (data.lisi.model) {
+                    lisiModelEl.textContent = `[${data.lisi.model}]`;
+                    lisiModelEl.classList.remove('hidden');
+                } else {
+                    lisiModelEl.classList.add('hidden');
+                }
+            }
+            
+            // 添加消息到聊天记录
+            function addMessageToChat(sender, message, time = new Date()) {
+                // 格式化时间
+                const hours = String(time.getHours()).padStart(2, '0');
+                const minutes = String(time.getMinutes()).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                
+                // 获取发送者信息
+                const isZhangshan = sender === 'zhangshan';
+                const name = isZhangshan ? '张三' : '李四';
+                const avatarUrl = isZhangshan ? 'https://picsum.photos/id/1005/200' : 'https://picsum.photos/id/1012/200';
+                const bubbleClass = isZhangshan ? 'bg-chat-gray chat-bubble-left' : 'bg-chat-blue chat-bubble-right';
+                const alignmentClass = isZhangshan ? '' : 'ml-auto justify-end';
+                
+                // 创建消息元素
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex items-end space-x-2 max-w-[80%] ${alignmentClass} animate-fade-in`;
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateY(10px)';
+                messageDiv.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                
+                // 构建消息HTML，支持换行
+                const formattedMessage = message.replace(/\n/g, '<br>');
+                
+                messageDiv.innerHTML = isZhangshan ? `
+                    <img src="${avatarUrl}" alt="${name}的头像" class="w-8 h-8 rounded-full object-cover">
+                    <div class="${bubbleClass} p-3 shadow-sm">
+                        <p>${formattedMessage}</p>
+                    </div>
+                    <span class="text-text-tertiary text-xs self-end">${timeString}</span>
+                ` : `
+                    <span class="text-text-tertiary text-xs self-end">${timeString}</span>
+                    <div class="${bubbleClass} p-3 shadow-sm">
+                        <p>${formattedMessage}</p>
+                    </div>
+                    <img src="${avatarUrl}" alt="${name}的头像" class="w-8 h-8 rounded-full object-cover">
+                `;
+                
+                // 添加到聊天记录
+                chatMessages.appendChild(messageDiv);
+                
+                // 触发动画
+                setTimeout(() => {
+                    messageDiv.style.opacity = '1';
+                    messageDiv.style.transform = 'translateY(0)';
+                    // 滚动到最新消息
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 100);
+                
+                return messageDiv;
+            }
+            
+            // 添加正在输入状态
+            function showTypingIndicator(sender) {
+                const isZhangshan = sender === 'zhangshan';
+                const name = isZhangshan ? '张三' : '李四';
+                const avatarUrl = isZhangshan ? 'https://picsum.photos/id/1005/200' : 'https://picsum.photos/id/1012/200';
+                const alignmentClass = isZhangshan ? '' : 'ml-auto justify-end';
+                
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typing-indicator';
+                typingDiv.className = `flex items-end space-x-2 max-w-[80%] ${alignmentClass} animate-fade-in`;
+                
+                typingDiv.innerHTML = isZhangshan ? `
+                    <img src="${avatarUrl}" alt="${name}的头像" class="w-8 h-8 rounded-full object-cover">
+                    <div class="bg-chat-gray p-3 chat-bubble-left shadow-sm">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="bg-chat-blue p-3 chat-bubble-right shadow-sm">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <img src="${avatarUrl}" alt="${name}的头像" class="w-8 h-8 rounded-full object-cover">
+                `;
+                
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return typingDiv;
+            }
+            
+            // 移除正在输入状态
+            function removeTypingIndicator() {
+                const typingDiv = document.getElementById('typing-indicator');
+                if (typingDiv) {
+                    typingDiv.remove();
+                }
+            }
+            
+            // 发送符合OpenAI API格式的请求
+            async function sendOpenAIRequest(config, messages, abortSignal) {
+                try {
+                    // 显示正在输入状态
+                    showTypingIndicator(config.sender);
+                    
+                    // 构建符合OpenAI API格式的请求体
+                    const requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7
+                    };
+                    
+                    // 发送API请求
+                    const response = await fetch(config.url + '/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody),
+                        signal: abortSignal
+                    });
+                    
+                    // 移除正在输入状态
+                    removeTypingIndicator();
+                    
+                    if (!response.ok) {
+                        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // 提取回复内容
+                    const replyContent = result.choices && result.choices[0] && 
+                                        result.choices[0].message && 
+                                        result.choices[0].message.content;
+                                        
+                    if (!replyContent) {
+                        throw new Error('未能从API响应中提取回复内容');
+                    }
+                    
+                    return replyContent;
+                } catch (error) {
+                    // 如果是用户中止的错误，不显示
+                    if (error.name !== 'AbortError') {
+                        // 移除正在输入状态
+                        removeTypingIndicator();
+                        console.error('API请求错误:', error);
+                        throw error;
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            
+            // 运行一轮对话
+            async function runConversationRound(data, messageHistory, currentRound, totalRounds, isSenderTurn) {
+                // 更新进度条
+                const progress = ((currentRound / totalRounds) * 100);
+                progressBar.style.width = `${progress}%`;
+                
+                // 确定当前说话人和对方
+                const currentSpeaker = isSenderTurn ? data.starter : (data.starter === 'zhangshan' ? 'lisi' : 'zhangshan');
+                const otherSpeaker = !isSenderTurn ? data.starter : (data.starter === 'zhangshan' ? 'lisi' : 'zhangshan');
+                
+                // 获取当前说话人的配置
+                const speakerConfig = data[currentSpeaker];
+                
+                // 验证配置
+                if (!speakerConfig.url || !speakerConfig.key || !speakerConfig.model) {
+                    throw new Error(`${currentSpeaker === 'zhangshan' ? '张三' : '李四'}的配置不完整，请检查URL、Key和Model`);
+                }
+                
+                // 构建发送给API的消息历史
+                const apiMessages = [
+                    { role: "system", content: speakerConfig.systemPrompt || '' },
+                    ...messageHistory.map(msg => ({
+                        role: msg.sender === currentSpeaker ? "assistant" : "user",
+                        content: msg.text
+                    }))
+                ];
+                
+                // 发送API请求
+                const reply = await sendOpenAIRequest(
+                    {
+                        url: speakerConfig.url,
+                        key: speakerConfig.key,
+                        model: speakerConfig.model,
+                        sender: currentSpeaker
+                    },
+                    apiMessages,
+                    conversationAbortController.signal
+                );
+                
+                // 添加回复到消息历史
+                const newMessage = {
+                    sender: currentSpeaker,
+                    text: reply,
+                    time: new Date()
+                };
+                messageHistory.push(newMessage);
+                
+                // 添加到聊天记录UI
+                addMessageToChat(currentSpeaker, reply);
+                
+                // 检查是否需要继续下一轮
+                if (currentRound < totalRounds) {
+                    // 等待1-2秒再进行下一轮，模拟思考时间
+                    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 1000));
+                    
+                    // 进行下一轮对话，切换说话人
+                    return runConversationRound(data, messageHistory, currentRound + 1, totalRounds, !isSenderTurn);
+                } else {
+                    // 完成所有轮次
+                    return messageHistory;
+                }
+            }
+            
+            // 开始多轮对话
+            async function startMultiTurnConversation(totalRounds = 10) {
+                try {
+                    // 设置对话状态
+                    isConversationRunning = true;
+                    submitBtn.disabled = true;
+                    stopBtn.classList.remove('hidden');
+                    progressContainer.classList.remove('hidden');
+                    progressBar.style.width = '0%';
+                    
+                    const data = getFormData();
+                    
+                    // 验证起始方
+                    if (!data.starter) {
+                        throw new Error('请选择先开始的一方');
+                    }
+                    
+                    // 获取发送方的user start prompt
+                    const starterUserPrompt = data[data.starter].userStartPrompt || '你好';
+                    
+                    // 清除原有的聊天记录
+                    clearChatHistory();
+                    
+                    // 初始化消息历史，添加第一条消息
+                    const messageHistory = [
+                        {
+                            sender: data.starter,
+                            text: starterUserPrompt,
+                            time: new Date()
+                        }
+                    ];
+                    
+                    // 添加第一条消息到UI
+                    addMessageToChat(data.starter, starterUserPrompt);
+                    
+                    // 显示提交信息
+                    alert(`开始${totalRounds}轮对话，由${data.starter === 'zhangshan' ? '张三' : '李四'}先开始`);
+                    
+                    // 等待1秒再开始对话
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // 创建中止控制器
+                    conversationAbortController = new AbortController();
+                    
+                    // 开始第一轮对话（此时轮到接收方回复）
+                    await runConversationRound(
+                        data, 
+                        messageHistory, 
+                        1, 
+                        totalRounds, 
+                        false // 第一轮是接收方回复，所以不是发送方的回合
+                    );
+                    
+                    // 所有轮次完成
+                    alert(`已完成${totalRounds}轮对话`);
+                } catch (error) {
+                    // 如果是用户中止的错误，不显示
+                    if (error.name !== 'AbortError') {
+                        console.error('对话错误:', error);
+                        alert(`对话过程中发生错误: ${error.message}`);
+                        
+                        // 显示错误消息到聊天记录
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'flex justify-center my-2';
+                        errorDiv.innerHTML = `<span class="error-message">${error.message}</span>`;
+                        chatMessages.appendChild(errorDiv);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                } finally {
+                    // 重置对话状态
+                    isConversationRunning = false;
+                    submitBtn.disabled = false;
+                    stopBtn.classList.add('hidden');
+                    progressContainer.classList.add('hidden');
+                    conversationAbortController = null;
+                }
+            }
+            
+            // 停止当前对话
+            function stopCurrentConversation() {
+                if (isConversationRunning && conversationAbortController) {
+                    if (confirm('确定要停止当前对话吗？')) {
+                        conversationAbortController.abort();
+                        isConversationRunning = false;
+                        submitBtn.disabled = false;
+                        stopBtn.classList.add('hidden');
+                    }
+                }
+            }
+            
+            // 编辑按钮功能 - 显示隐藏的表单
+            document.getElementById('edit-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法编辑');
+                    return;
+                }
+                
+                // 显示所有表单
+                document.querySelectorAll('.form-element').forEach(form => {
+                    form.classList.remove('form-hidden');
+                });
+            });
+            
+            // 提交按钮功能 - 开始多轮对话
+            submitBtn.addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，请先停止当前对话');
+                    return;
+                }
+                
+                // 隐藏所有表单
+                document.querySelectorAll('.form-element').forEach(form => {
+                    form.classList.add('form-hidden');
+                });
+                
+                // 开始10轮对话
+                startMultiTurnConversation(10);
+            });
+            
+            // 停止按钮功能
+            stopBtn.addEventListener('click', stopCurrentConversation);
+            
+            // 载入按钮功能 - 从localStorage加载
+            document.getElementById('load-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法载入数据');
+                    return;
+                }
+                
+                const savedData = localStorage.getItem('chatFormData');
+                if (savedData) {
+                    try {
+                        const data = JSON.parse(savedData);
+                        if (setFormData(data)) {
+                            alert('已从本地存储加载数据！');
+                            // 显示表单以便用户查看加载的数据
+                            document.querySelectorAll('.form-element').forEach(form => {
+                                form.classList.remove('form-hidden');
+                            });
+                        }
+                    } catch (e) {
+                        alert('加载失败：数据格式错误');
+                        console.error('加载失败', e);
+                    }
+                } else {
+                    alert('没有找到保存的数据！');
+                }
+            });
+            
+            // 保存按钮功能 - 使用localStorage保存
+            document.getElementById('save-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法保存数据');
+                    return;
+                }
+                
+                const data = getFormData();
+                
+                // 保存到本地存储
+                localStorage.setItem('chatFormData', JSON.stringify(data));
+                
+                alert('表单数据已保存到本地！');
+            });
+            
+            // 导入按钮功能 - 从JSON文件导入
+            document.getElementById('import-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法导入数据');
+                    return;
+                }
+                
+                // 创建一个隐藏的文件输入元素
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                
+                fileInput.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (setFormData(data)) {
+                                alert('数据导入成功！');
+                                // 显示表单以便用户查看导入的数据
+                                document.querySelectorAll('.form-element').forEach(form => {
+                                    form.classList.remove('form-hidden');
+                                });
+                            }
+                        } catch (e) {
+                            alert('导入失败：文件格式错误');
+                            console.error('导入失败', e);
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+                
+                // 触发文件选择对话框
+                fileInput.click();
+            });
+            
+            // 导出按钮功能 - 导出为JSON文件
+            document.getElementById('export-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('对话正在进行中，无法导出数据');
+                    return;
+                }
+                
+                const data = getFormData();
+                const jsonData = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // 创建下载链接
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'chat_form_data_' + new Date().toISOString().slice(0,10) + '.json';
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+                
+                alert('表单数据已导出为JSON文件！');
+            });
+        });
+    </script>
+</body>
+</html>
+    
