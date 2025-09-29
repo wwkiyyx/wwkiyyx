@@ -1,5 +1,7 @@
 ### Hi there 👋
 
+ - https://wwkiyyx.github.io/wwkiyyx/ AI小剧场，配置两个AI互相聊天
+
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
 | - | 词嵌入 | Word Embedding |
