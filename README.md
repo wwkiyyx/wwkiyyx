@@ -1,6 +1,6 @@
 ### Hi there 👋
 
-| NLP | 自然语言处理 | Natural Language Processing |  |
+| NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
 | - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
