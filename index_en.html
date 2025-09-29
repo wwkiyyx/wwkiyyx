@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-turn Chat Conversation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- Configure Tailwind custom colors and fonts -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#07C160', // WeChat green
+                        secondary: '#4E5969', // Secondary operation blue-gray
+                        tertiary: '#86909C', // Tertiary operation gray
+                        'bg-gray': '#F2F3F5', // Background gray
+                        'chat-blue': '#95EC69', // Own message background
+                        'chat-gray': '#FFFFFF', // Other's message background
+                        'text-primary': '#303133', // Primary text
+                        'text-secondary': '#606266', // Secondary text
+                        'text-tertiary': '#909399', // Tertiary text
+                        'loading-gray': '#E5E7EB', // Loading state color
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .chat-bubble-left {
+                border-radius: 0.5rem 0.5rem 0.5rem 0;
+            }
+            .chat-bubble-right {
+                border-radius: 0.5rem 0.5rem 0 0.5rem;
+            }
+            .form-input {
+                @apply w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary;
+            }
+            .form-textarea {
+                @apply w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary min-h-[80px] resize-y;
+            }
+            .password-container {
+                @apply relative;
+            }
+            .toggle-password {
+                @apply absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer hover:text-primary transition-colors;
+            }
+            .action-btn {
+                @apply px-4 py-1.5 rounded transition-colors flex items-center text-sm;
+            }
+            .form-hidden {
+                @apply hidden;
+            }
+            .radio-group {
+                @apply flex items-center ml-2 cursor-pointer;
+            }
+            .radio-input {
+                @apply w-3 h-3 text-primary focus:ring-primary border-gray-300;
+            }
+            .radio-label {
+                @apply text-xs text-text-secondary ml-1;
+            }
+            .model-tag {
+                @apply text-xs text-blue-600 ml-1 font-normal;
+            }
+            .typing-indicator {
+                @apply flex space-x-1.5 py-1.5 px-2;
+            }
+            .typing-indicator span {
+                @apply w-2 h-2 bg-text-tertiary rounded-full animate-bounce;
+            }
+            .typing-indicator span:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+            .typing-indicator span:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+            .error-message {
+                @apply text-red-500 text-xs italic;
+            }
+            .progress-container {
+                @apply fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50 hidden;
+            }
+            .progress-bar {
+                @apply h-full bg-primary transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center p-4 font-sans">
+    <!-- Progress bar -->
+    <div class="progress-container" id="progress-container">
+        <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+    </div>
+    
+    <div class="w-full max-w-5xl h-full max-h-[800px] bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+        <!-- Chat header -->
+        <div class="bg-white p-3 border-b border-gray-200">
+            <div class="flex items-start justify-between">
+                <div id="zhangshan-form-container">
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <img src="https://picsum.photos/id/1005/200" alt="Zhang San's avatar" class="w-10 h-10 rounded-full object-cover">
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-primary rounded-full border-2 border-white"></span>
+                        </div>
+                        <div class="ml-3 flex items-center">
+                            <h3 class="text-text-primary font-medium">
+                                Zhang San
+                                <span id="zhangshan-model" class="model-tag hidden"></span>
+                            </h3>
+                            <!-- Zhang San's starter radio button - selected by default -->
+                            <label class="radio-group">
+                                <input type="radio" name="starter" value="zhangshan" class="radio-input" checked>
+                                <span class="radio-label">Starts first</span>
+                            </label>
+                            <p class="text-text-tertiary text-xs ml-2">Yesterday 18:30</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Zhang San's form - initially hidden -->
+                    <div class="mt-2 ml-13 bg-gray-50 p-2 rounded-md text-xs w-[280px] form-element form-hidden">
+                        <form id="form-zhangshan" class="space-y-1">
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">URL</label>
+                                <input type="text" name="url" class="form-input" placeholder="Enter URL">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Key</label>
+                                <div class="password-container">
+                                    <input type="password" id="key-zhangshan" name="key" class="form-input pr-8" placeholder="Enter Key">
+                                    <i class="fa fa-eye-slash toggle-password" data-for="key-zhangshan"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Model</label>
+                                <input type="text" name="model" class="form-input" placeholder="Enter Model">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">System prompt</label>
+                                <textarea name="systemPrompt" class="form-textarea" placeholder="Enter system prompt"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">User start prompt</label>
+                                <textarea name="userStartPrompt" class="form-textarea" placeholder="Enter user start prompt"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="lisi-form-container">
+                    <div class="flex items-center">
+                        <div class="flex items-center">
+                            <div class="relative mr-2">
+                                <img src="https://picsum.photos/id/1012/200" alt="Li Si's avatar" class="w-8 h-8 rounded-full object-cover">
+                            </div>
+                            <div class="flex items-center">
+                                <span class="text-text-primary text-sm font-medium">
+                                    Li Si
+                                    <span id="lisi-model" class="model-tag hidden"></span>
+                                </span>
+                                <!-- Li Si's starter radio button -->
+                                <label class="radio-group">
+                                    <input type="radio" name="starter" value="lisi" class="radio-input">
+                                    <span class="radio-label">Starts first</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Li Si's form - initially hidden -->
+                    <div class="mt-2 bg-gray-50 p-2 rounded-md text-xs w-[280px] form-element form-hidden">
+                        <form id="form-lisi" class="space-y-1">
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">URL</label>
+                                <input type="text" name="url" class="form-input" placeholder="Enter URL">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Key</label>
+                                <div class="password-container">
+                                    <input type="password" id="key-lisi" name="key" class="form-input pr-8" placeholder="Enter Key">
+                                    <i class="fa fa-eye-slash toggle-password" data-for="key-lisi"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">Model</label>
+                                <input type="text" name="model" class="form-input" placeholder="Enter Model">
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">System prompt</label>
+                                <textarea name="systemPrompt" class="form-textarea" placeholder="Enter system prompt"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-text-tertiary mb-0.5">User start prompt</label>
+                                <textarea name="userStartPrompt" class="form-textarea" placeholder="Enter user start prompt"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="mt-3 flex justify-center space-x-2">
+                <button id="edit-btn" class="action-btn bg-blue-500 text-white hover:bg-blue-600">
+                    <i class="fa fa-pencil mr-1"></i> Edit
+                </button>
+                <button id="submit-btn" class="action-btn bg-primary text-white hover:bg-primary/90">
+                    <i class="fa fa-paper-plane mr-1"></i> Submit
+                </button>
+                <button id="load-btn" class="action-btn bg-purple-500 text-white hover:bg-purple-600">
+                    <i class="fa fa-upload mr-1"></i> Load
+                </button>
+                <button id="save-btn" class="action-btn bg-blue-700 text-white hover:bg-blue-800">
+                    <i class="fa fa-save mr-1"></i> Save
+                </button>
+                <button id="import-btn" class="action-btn bg-green-600 text-white hover:bg-green-700">
+                    <i class="fa fa-file-text-o mr-1"></i> Import
+                </button>
+                <button id="export-btn" class="action-btn bg-tertiary text-white hover:bg-tertiary/90">
+                    <i class="fa fa-download mr-1"></i> Export
+                </button>
+                <button id="stop-btn" class="action-btn bg-red-500 text-white hover:bg-red-600 hidden">
+                    <i class="fa fa-stop mr-1"></i> Stop
+                </button>
+            </div>
+        </div>
+        
+        <!-- Chat content area -->
+        <div class="flex-1 p-4 overflow-y-auto scrollbar-hide space-y-4 bg-bg-gray" id="chat-messages">
+            <!-- Initial prompt message -->
+            <div class="flex justify-center">
+                <span class="bg-gray-300 text-white text-xs px-3 py-1 rounded-full">Please click the submit button to start the conversation</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for import functionality -->
+    <input type="file" id="import-file-input" accept=".json" class="hidden">
+
+    <script>
+        // Global variables to control conversation flow
+        let isConversationRunning = false;
+        let conversationAbortController = null;
+        let messageHistory = []; // Track message history for export functionality
+        
+        // Chat history display functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const zhangshanForm = document.getElementById('form-zhangshan');
+            const lisiForm = document.getElementById('form-lisi');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const submitBtn = document.getElementById('submit-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const importFileInput = document.getElementById('import-file-input');
+            
+            // Scroll to latest message when page loads
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Password show/hide functionality
+            document.querySelectorAll('.toggle-password').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const passwordInputId = this.getAttribute('data-for');
+                    const passwordInput = document.getElementById(passwordInputId);
+                    
+                    if (passwordInput) {
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            this.classList.remove('fa-eye-slash');
+                            this.classList.add('fa-eye');
+                        } else {
+                            passwordInput.type = 'password';
+                            this.classList.remove('fa-eye');
+                            this.classList.add('fa-eye-slash');
+                        }
+                    }
+                });
+            });
+            
+            // Set initial form values
+            const initialValues = {
+                url: 'https://api.suanli.cn/v1',
+                key: 'sk-W0rpStc95T7JVYVwDYc29IyirjtpPPby6SozFMQr17m8KWeo',
+                model: 'free:Qwen3-30B-A3B',
+                systemPrompt: 'You are a cultured person',
+                userStartPrompt: 'Hello, let\'s discuss some interesting topics'
+            };
+            
+            // Set initial values for Zhang San's form
+            Object.keys(initialValues).forEach(key => {
+                const field = zhangshanForm.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = initialValues[key];
+                }
+            });
+            
+            // Set initial values for Li Si's form
+            Object.keys(initialValues).forEach(key => {
+                const field = lisiForm.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = initialValues[key];
+                }
+            });
+            
+            // Function to clear chat history
+            function clearChatHistory() {
+                // Clear chat container
+                chatMessages.innerHTML = '';
+                messageHistory = []; // Reset message history
+                
+                // Add current date separator
+                const today = new Date();
+                const options = { month: 'short', day: 'numeric' };
+                const dateString = today.toLocaleDateString('en-US', options);
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'flex justify-center';
+                dateDiv.innerHTML = `<span class="bg-gray-300 text-white text-xs px-3 py-1 rounded-full">${dateString}</span>`;
+                
+                chatMessages.appendChild(dateDiv);
+            }
+            
+            // General function to get form data
+            function getFormData() {
+                // Get Zhang San's form data
+                const zhangshanData = new FormData(zhangshanForm);
+                const zhangshanValues = Object.fromEntries(zhangshanData.entries());
+                
+                // Get Li Si's form data
+                const lisiData = new FormData(lisiForm);
+                const lisiValues = Object.fromEntries(lisiData.entries());
+                
+                // Get starter selection
+                const starter = document.querySelector('input[name="starter"]:checked')?.value || '';
+                
+                return {
+                    zhangshan: zhangshanValues,
+                    lisi: lisiValues,
+                    starter: starter
+                };
+            }
+            
+            // General function to set form data
+            function setFormData(data) {
+                if (!data || !data.zhangshan || !data.lisi) {
+                    alert('Invalid data format');
+                    return false;
+                }
+                
+                // Set Zhang San's form data
+                Object.keys(data.zhangshan).forEach(key => {
+                    const field = zhangshanForm.querySelector(`[name="${key}"]`);
+                    if (field) {
+                        field.value = data.zhangshan[key];
+                    }
+                });
+                
+                // Set Li Si's form data
+                Object.keys(data.lisi).forEach(key => {
+                    const field = lisiForm.querySelector(`[name="${key}"]`);
+                    if (field) {
+                        field.value = data.lisi[key];
+                    }
+                });
+                
+                // Set starter selection
+                if (data.starter) {
+                    const starterRadio = document.querySelector(`input[name="starter"][value="${data.starter}"]`);
+                    if (starterRadio) {
+                        starterRadio.checked = true;
+                    }
+                }
+                
+                // Update displayed model information
+                updateModelDisplay(data);
+                
+                return true;
+            }
+            
+            // Update model information displayed after names
+            function updateModelDisplay(data) {
+                const zhangshanModelEl = document.getElementById('zhangshan-model');
+                const lisiModelEl = document.getElementById('lisi-model');
+                
+                // Display Zhang San's model information
+                if (data.zhangshan.model) {
+                    zhangshanModelEl.textContent = `[${data.zhangshan.model}]`;
+                    zhangshanModelEl.classList.remove('hidden');
+                } else {
+                    zhangshanModelEl.classList.add('hidden');
+                }
+                
+                // Display Li Si's model information
+                if (data.lisi.model) {
+                    lisiModelEl.textContent = `[${data.lisi.model}]`;
+                    lisiModelEl.classList.remove('hidden');
+                } else {
+                    lisiModelEl.classList.add('hidden');
+                }
+            }
+            
+            // Add message to chat history
+            function addMessageToChat(sender, message, time = new Date()) {
+                // Format time
+                const hours = String(time.getHours()).padStart(2, '0');
+                const minutes = String(time.getMinutes()).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                
+                // Get sender information
+                const isZhangshan = sender === 'zhangshan';
+                const name = isZhangshan ? 'Zhang San' : 'Li Si';
+                const avatarUrl = isZhangshan ? 'https://picsum.photos/id/1005/200' : 'https://picsum.photos/id/1012/200';
+                const bubbleClass = isZhangshan ? 'bg-chat-gray chat-bubble-left' : 'bg-chat-blue chat-bubble-right';
+                const alignmentClass = isZhangshan ? '' : 'ml-auto justify-end';
+                
+                // Create message element
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex items-end space-x-2 max-w-[80%] ${alignmentClass} animate-fade-in`;
+                messageDiv.style.opacity = '0';
+                messageDiv.style.transform = 'translateY(10px)';
+                messageDiv.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                
+                // Build message HTML with line break support
+                const formattedMessage = message.replace(/\n/g, '<br>');
+                
+                messageDiv.innerHTML = isZhangshan ? `
+                    <img src="${avatarUrl}" alt="${name}'s avatar" class="w-8 h-8 rounded-full object-cover">
+                    <div class="${bubbleClass} p-3 shadow-sm">
+                        <p>${formattedMessage}</p>
+                    </div>
+                    <span class="text-text-tertiary text-xs self-end">${timeString}</span>
+                ` : `
+                    <span class="text-text-tertiary text-xs self-end">${timeString}</span>
+                    <div class="${bubbleClass} p-3 shadow-sm">
+                        <p>${formattedMessage}</p>
+                    </div>
+                    <img src="${avatarUrl}" alt="${name}'s avatar" class="w-8 h-8 rounded-full object-cover">
+                `;
+                
+                // Add to chat history
+                chatMessages.appendChild(messageDiv);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    messageDiv.style.opacity = '1';
+                    messageDiv.style.transform = 'translateY(0)';
+                    // Scroll to latest message
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 100);
+                
+                // Add to message history for export
+                const messageObj = {
+                    sender,
+                    text: message,
+                    time: time.toISOString(),
+                    timeString
+                };
+                messageHistory.push(messageObj);
+                
+                return messageDiv;
+            }
+            
+            // Add typing indicator
+            function showTypingIndicator(sender) {
+                const isZhangshan = sender === 'zhangshan';
+                const name = isZhangshan ? 'Zhang San' : 'Li Si';
+                const avatarUrl = isZhangshan ? 'https://picsum.photos/id/1005/200' : 'https://picsum.photos/id/1012/200';
+                const alignmentClass = isZhangshan ? '' : 'ml-auto justify-end';
+                
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typing-indicator';
+                typingDiv.className = `flex items-end space-x-2 max-w-[80%] ${alignmentClass} animate-fade-in`;
+                
+                typingDiv.innerHTML = isZhangshan ? `
+                    <img src="${avatarUrl}" alt="${name}'s avatar" class="w-8 h-8 rounded-full object-cover">
+                    <div class="bg-chat-gray p-3 chat-bubble-left shadow-sm">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="bg-chat-blue p-3 chat-bubble-right shadow-sm">
+                        <div class="typing-indicator">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <img src="${avatarUrl}" alt="${name}'s avatar" class="w-8 h-8 rounded-full object-cover">
+                `;
+                
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                return typingDiv;
+            }
+            
+            // Remove typing indicator
+            function removeTypingIndicator() {
+                const typingDiv = document.getElementById('typing-indicator');
+                if (typingDiv) {
+                    typingDiv.remove();
+                }
+            }
+            
+            // Send request in OpenAI API format
+            async function sendOpenAIRequest(config, messages, abortSignal) {
+                try {
+                    // Show typing indicator
+                    showTypingIndicator(config.sender);
+                    
+                    // Build request body in OpenAI API format
+                    const requestBody = {
+                        model: config.model,
+                        messages: messages,
+                        temperature: 0.7
+                    };
+                    
+                    // Send API request
+                    const response = await fetch(config.url + '/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${config.key}`
+                        },
+                        body: JSON.stringify(requestBody),
+                        signal: abortSignal
+                    });
+                    
+                    // Remove typing indicator
+                    removeTypingIndicator();
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Extract reply content
+                    const replyContent = result.choices && result.choices[0] && 
+                                        result.choices[0].message && 
+                                        result.choices[0].message.content;
+                                        
+                    if (!replyContent) {
+                        throw new Error('Could not extract reply content from API response');
+                    }
+                    
+                    return replyContent;
+                } catch (error) {
+                    // Don't show if it's a user-aborted error
+                    if (error.name !== 'AbortError') {
+                        // Remove typing indicator
+                        removeTypingIndicator();
+                        console.error('API request error:', error);
+                        throw error;
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            
+            // Run one round of conversation
+            async function runConversationRound(data, messageHistory, currentRound, totalRounds, isSenderTurn) {
+                // Update progress bar
+                const progress = ((currentRound / totalRounds) * 100);
+                progressBar.style.width = `${progress}%`;
+                
+                // Determine current speaker and the other party
+                const currentSpeaker = isSenderTurn ? data.starter : (data.starter === 'zhangshan' ? 'lisi' : 'zhangshan');
+                const otherSpeaker = !isSenderTurn ? data.starter : (data.starter === 'zhangshan' ? 'lisi' : 'zhangshan');
+                
+                // Get current speaker's configuration
+                const speakerConfig = data[currentSpeaker];
+                
+                // Validate configuration
+                if (!speakerConfig.url || !speakerConfig.key || !speakerConfig.model) {
+                    throw new Error(`${currentSpeaker === 'zhangshan' ? 'Zhang San' : 'Li Si'}'s configuration is incomplete. Please check URL, Key and Model`);
+                }
+                
+                // Build message history for API
+                const apiMessages = [
+                    { role: "system", content: speakerConfig.systemPrompt || '' },
+                    ...messageHistory.map(msg => ({
+                        role: msg.sender === currentSpeaker ? "assistant" : "user",
+                        content: msg.text
+                    }))
+                ];
+                
+                // Send API request
+                const reply = await sendOpenAIRequest(
+                    {
+                        url: speakerConfig.url,
+                        key: speakerConfig.key,
+                        model: speakerConfig.model,
+                        sender: currentSpeaker
+                    },
+                    apiMessages,
+                    conversationAbortController.signal
+                );
+                
+                // Add reply to message history
+                const newMessage = {
+                    sender: currentSpeaker,
+                    text: reply,
+                    time: new Date()
+                };
+                messageHistory.push(newMessage);
+                
+                // Add to chat UI
+                addMessageToChat(currentSpeaker, reply);
+                
+                // Check if need to continue to next round
+                if (currentRound < totalRounds) {
+                    // Wait 1-2 seconds before next round to simulate thinking time
+                    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 1000));
+                    
+                    // Proceed to next round, switch speaker
+                    return runConversationRound(data, messageHistory, currentRound + 1, totalRounds, !isSenderTurn);
+                } else {
+                    // Complete all rounds
+                    return messageHistory;
+                }
+            }
+            
+            // Start multi-turn conversation
+            async function startMultiTurnConversation(totalRounds = 10) {
+                try {
+                    // Set conversation state
+                    isConversationRunning = true;
+                    submitBtn.disabled = true;
+                    stopBtn.classList.remove('hidden');
+                    progressContainer.classList.remove('hidden');
+                    progressBar.style.width = '0%';
+                    
+                    const data = getFormData();
+                    
+                    // Validate starter
+                    if (!data.starter) {
+                        throw new Error('Please select who starts first');
+                    }
+                    
+                    // Get starter's user start prompt
+                    const starterUserPrompt = data[data.starter].userStartPrompt || 'Hello';
+                    
+                    // Clear existing chat history
+                    clearChatHistory();
+                    
+                    // Initialize message history with first message
+                    const messageHistory = [
+                        {
+                            sender: data.starter,
+                            text: starterUserPrompt,
+                            time: new Date()
+                        }
+                    ];
+                    
+                    // Add first message to UI
+                    addMessageToChat(data.starter, starterUserPrompt);
+                    
+                    // Show confirmation
+                    alert(`Starting ${totalRounds}-round conversation, initiated by ${data.starter === 'zhangshan' ? 'Zhang San' : 'Li Si'}`);
+                    
+                    // Wait 1 second before starting conversation
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Create abort controller
+                    conversationAbortController = new AbortController();
+                    
+                    // Start first round (receiver's turn to reply)
+                    await runConversationRound(
+                        data, 
+                        messageHistory, 
+                        1, 
+                        totalRounds, 
+                        false // First round is receiver's turn, so not sender's turn
+                    );
+                    
+                    // All rounds completed
+                    alert(`${totalRounds}-round conversation completed`);
+                } catch (error) {
+                    // Don't show if it's a user-aborted error
+                    if (error.name !== 'AbortError') {
+                        console.error('Conversation error:', error);
+                        alert(`Error occurred during conversation: ${error.message}`);
+                        
+                        // Show error message in chat
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'flex justify-center my-2';
+                        errorDiv.innerHTML = `<span class="error-message">${error.message}</span>`;
+                        chatMessages.appendChild(errorDiv);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                } finally {
+                    // Reset conversation state
+                    isConversationRunning = false;
+                    submitBtn.disabled = false;
+                    stopBtn.classList.add('hidden');
+                    progressContainer.classList.add('hidden');
+                    conversationAbortController = null;
+                }
+            }
+            
+            // Stop current conversation
+            function stopCurrentConversation() {
+                if (isConversationRunning && conversationAbortController) {
+                    if (confirm('Are you sure you want to stop the current conversation?')) {
+                        conversationAbortController.abort();
+                        isConversationRunning = false;
+                        submitBtn.disabled = false;
+                        stopBtn.classList.add('hidden');
+                    }
+                }
+            }
+            
+            // Save form data to localStorage
+            function saveFormData() {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, cannot save data');
+                    return;
+                }
+                
+                const data = getFormData();
+                try {
+                    localStorage.setItem('chatFormData', JSON.stringify(data));
+                    alert('Data saved successfully!');
+                } catch (e) {
+                    alert('Save failed: ' + e.message);
+                    console.error('Save failed', e);
+                }
+            }
+            
+            // Export chat history as JSON
+            function exportChatHistory() {
+                if (messageHistory.length === 0) {
+                    alert('No chat history to export!');
+                    return;
+                }
+                
+                const data = {
+                    conversationSettings: getFormData(),
+                    messages: messageHistory,
+                    exportDate: new Date().toISOString()
+                };
+                
+                const jsonStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `chat-history-${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Import chat configuration from JSON file
+            function importChatConfig(event) {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, cannot import data');
+                    return;
+                }
+                
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (setFormData(data.conversationSettings || data)) {
+                            alert('Configuration imported successfully!');
+                            // Show forms so user can view imported data
+                            document.querySelectorAll('.form-element').forEach(form => {
+                                form.classList.remove('form-hidden');
+                            });
+                        }
+                    } catch (e) {
+                        alert('Import failed: invalid file format');
+                        console.error('Import failed', e);
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset file input
+                importFileInput.value = '';
+            }
+            
+            // Edit button functionality - show hidden forms
+            document.getElementById('edit-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, cannot edit');
+                    return;
+                }
+                
+                // Show all forms
+                document.querySelectorAll('.form-element').forEach(form => {
+                    form.classList.remove('form-hidden');
+                });
+            });
+            
+            // Submit button functionality - start multi-turn conversation
+            submitBtn.addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, please stop current conversation first');
+                    return;
+                }
+                
+                // Hide all forms
+                document.querySelectorAll('.form-element').forEach(form => {
+                    form.classList.add('form-hidden');
+                });
+                
+                // Start 10-round conversation
+                startMultiTurnConversation(10);
+            });
+            
+            // Stop button functionality
+            stopBtn.addEventListener('click', stopCurrentConversation);
+            
+            // Load button functionality - load from localStorage
+            document.getElementById('load-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, cannot load data');
+                    return;
+                }
+                
+                const savedData = localStorage.getItem('chatFormData');
+                if (savedData) {
+                    try {
+                        const data = JSON.parse(savedData);
+                        if (setFormData(data)) {
+                            alert('Data loaded from local storage!');
+                            // Show forms so user can view loaded data
+                            document.querySelectorAll('.form-element').forEach(form => {
+                                form.classList.remove('form-hidden');
+                            });
+                        }
+                    } catch (e) {
+                        alert('Load failed: invalid data format');
+                        console.error('Load failed', e);
+                    }
+                } else {
+                    alert('No saved data found!');
+                }
+            });
+            
+            // Save button functionality - save to localStorage
+            document.getElementById('save-btn').addEventListener('click', saveFormData);
+            
+            // Export button functionality - export chat history
+            document.getElementById('export-btn').addEventListener('click', exportChatHistory);
+            
+            // Import button functionality - trigger file input
+            document.getElementById('import-btn').addEventListener('click', function() {
+                if (isConversationRunning) {
+                    alert('Conversation is in progress, cannot import data');
+                    return;
+                }
+                importFileInput.click();
+            });
+            
+            // Handle file selection for import
+            importFileInput.addEventListener('change', importChatConfig);
+        });
+    </script>
+</body>
+</html>
