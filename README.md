@@ -11,7 +11,7 @@
 | - | 预训练模型 | Pre-trained Model |
 | - | 聊天机器人 | Chatbot |
 | - | 思维链 深度思考 长思考 | thinking |
-| - | 工具调用 函数调用 | tool and function | 
+| - | 工具调用 函数调用 | tool and function |
 | - | 联网搜索 | web search |
 | - | 智能体 | Agent |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
