@@ -5,7 +5,11 @@
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
 | - | - | Transformer |
+| - | - | Instruct、Instruction |
 | - | - | Token、Tokenizer |
+| PPO | 近端策略优化 | Proximal Policy Optimization |
+| RL | 强化学习 | Reinforcement Learning |
+| - | 奖励模型 | Reward Model |
 | - | 预训练模型 | Pre-trained Model |
 | - | 编码器-解码器 | Encoder-Decoder |
 | - | 注意力 | Self-Attention |
