@@ -14,7 +14,7 @@
 | RL | 强化学习 | Reinforcement Learning |
 | - | 奖励模型 | Reward Model |
 | - | 预训练模型 | Pre-trained Model |
-| - | 编码器-解码器 | Encoder-Decoder |
+| - | 编码器-解码器 | Encoder-Decoder、seq2seq |
 | - | 注意力 | Self-Attention、Multi-Head Attention |
 | - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
