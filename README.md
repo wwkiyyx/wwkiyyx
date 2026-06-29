@@ -7,12 +7,15 @@
 | - | - | Transformer |
 | - | - | Instruct、Instruction |
 | - | - | Token、Tokenizer |
+| MoE | 混合专家 | Mixture of Experts |
+| SFT | 监督微调 | - | 
+| RLHF | 人类反馈强化学习 | - | 
 | PPO | 近端策略优化 | Proximal Policy Optimization |
 | RL | 强化学习 | Reinforcement Learning |
 | - | 奖励模型 | Reward Model |
 | - | 预训练模型 | Pre-trained Model |
 | - | 编码器-解码器 | Encoder-Decoder |
-| - | 注意力 | Self-Attention |
+| - | 注意力 | Self-Attention、Multi-Head Attention |
 | - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
 | LSTM | 长短期记忆 | Long Short-Term Memory |
