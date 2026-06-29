@@ -17,6 +17,8 @@
 | - | 工具调用 函数调用 | tool and function |
 | - | 联网搜索 | web search |
 | - | 智能体 | Agent |
+| - | - | Claw |
+| - | - | Harness |
 | RAG | 检索增强生成 | Retrieval-augmented Generation |
 | - | 大模型微调 | Fine-tuning | 
 | MCP | 模型上下文协议 | Model Context Protocol |
