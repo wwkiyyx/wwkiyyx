@@ -4,13 +4,17 @@
 
 | NLP | 自然语言处理 | Natural Language Processing |
 | ----- | ----- | ----- |
+| - | - | Transformer |
+| - | - | Token、Tokenizer |
+| - | 预训练模型 | Pre-trained Model |
+| - | 编码器-解码器 | Encoder-Decoder |
+| - | 注意力 | Self-Attention |
 | - | 词嵌入 | Word Embedding |
 | RNN | 循环神经网络 | Recurrent Neural Network |
 | LSTM | 长短期记忆 | Long Short-Term Memory |
 | LLM | 大型语言模型 | Large Language Model |
 | BERT | - | Bidirectional Encoder Representations from Transformers |
 | GPT | - | Generative Pre-trained Transformer |
-| - | 预训练模型 | Pre-trained Model |
 | - | 聊天机器人 | Chatbot |
 | - | 提示词 | prompt |
 | CoT | 思维链 深度思考 长思考 | Chain of Thought 、 thinking |
